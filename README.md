@@ -92,10 +92,10 @@ You should see:
 ```
   VITE vx.x.x  ready in xxx ms
 
-  ➜  Local:   http://localhost:5173/
+  ➜  Local:   http://localhost:5174/
 ```
 
-**Open http://localhost:5173 in your browser** 🎉
+**Open http://localhost:5174 in your browser** 🎉
 
 ---
 
@@ -105,7 +105,7 @@ You should see:
 |-------------|---------------------|----------------------------|
 | **Database** | `mysql -u root -p < Event_Mangement.sql` | — |
 | **Backend**  | `node server.js`    | http://localhost:8080       |
-| **Frontend** | `npm run dev`       | http://localhost:5173       |
+| **Frontend** | `npm run dev`       | http://localhost:5174       |
 
 ---
 

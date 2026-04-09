@@ -27,7 +27,7 @@ db:
 run:
 	@echo "Starting backend and frontend..."
 	@echo "Backend will run on http://localhost:8080"
-	@echo "Frontend will run on http://localhost:5173"
+	@echo "Frontend will run on http://localhost:5174"
 	(cd backend && node server.js) & (cd frontend && npm run dev)
 
 all: install run
