@@ -1193,3 +1193,11 @@ app.get("/api/users", async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 });
+app.get("/test-db", async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT 1");
+        res.json({ success: true, message: "DB Connected ✅" });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
