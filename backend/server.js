@@ -5,6 +5,17 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('./db');
 
+async function testDB() {
+  try {
+    const connection = await db.getConnection();
+    console.log("✅ Database connected successfully!");
+    connection.release();
+  } catch (err) {
+    console.error("❌ Database connection failed:", err);
+  }
+}
+testDB();
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt';
