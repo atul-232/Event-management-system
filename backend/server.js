@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
@@ -6,7 +7,7 @@ const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const JWT_SECRET = 'super_secret_jwt';
+const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt';
 
 app.use(cors());
 app.use(express.json());
@@ -17,8 +18,8 @@ app.post('/api/auth/register', async (req, res) => {
         const { name, email, phone, password, role, address, age, gender, proofId, country } = req.body;
         // SECURITY: Only one Admin exists. Nobody can register as ADMIN.
         if (role === 'ADMIN') return res.status(403).json({ success: false, error: 'Admin registration is forbidden.' });
-        if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({success: false, error: "Invalid Email Format"});
-        if(!/(?=.*\d)(?=.*[A-Z])(?=.*[@$!%*?&]).{8,}/.test(password)) return res.status(400).json({success: false, error: "Weak Password."});
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ success: false, error: "Invalid Email Format" });
+        if (!/(?=.*\d)(?=.*[A-Z])(?=.*[@$!%*?&]).{8,}/.test(password)) return res.status(400).json({ success: false, error: "Weak Password." });
         const hashedPassword = await bcrypt.hash(password, 10);
         const userId = Math.floor(Math.random() * 1000000);
         await db.execute(
@@ -27,7 +28,7 @@ app.post('/api/auth/register', async (req, res) => {
         );
         res.json({ success: true, message: 'User registered successfully!' });
     } catch (err) {
-        if(err.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, error: 'Email already exists.' });
+        if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, error: 'Email already exists.' });
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -104,7 +105,7 @@ app.get('/api/admin/user-activity/:userId', async (req, res) => {
              JOIN Event e ON b.Event_Id = e.Event_Id
              WHERE b.UserId = ? ORDER BY p.Payment_Id DESC`, [uid]);
         res.json({ success: true, bookings, payments });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Admin: All Business Accounts
@@ -133,7 +134,7 @@ app.post('/api/events/extend-deadline', async (req, res) => {
         const { eventId, newDeadline } = req.body;
         await db.execute('UPDATE Event SET Booking_Deadline = ? WHERE Event_Id = ?', [newDeadline, eventId]);
         res.json({ success: true, message: 'Booking deadline extended.' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Admin or Owner: Update seat capacity
@@ -147,7 +148,7 @@ app.post('/api/events/update-seats', async (req, res) => {
         const newAvailable = newTotal - booked;
         await db.execute('UPDATE Event SET Total_Seats = ?, Available_Seats = ? WHERE Event_Id = ?', [newTotal, newAvailable, eventId]);
         res.json({ success: true, message: `Seats updated.` });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Admin or Owner: Update commission rate per ticket
@@ -156,7 +157,7 @@ app.post('/api/events/update-commission', async (req, res) => {
         const { eventId, commissionRate } = req.body;
         await db.execute('UPDATE Event SET Commission_Rate = ? WHERE Event_Id = ?', [commissionRate, eventId]);
         res.json({ success: true, message: `Commission updated to ₹${commissionRate}/ticket` });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Public: All Approved Events
@@ -170,7 +171,7 @@ app.get('/api/events', async (req, res) => {
              ORDER BY e.Event_Date ASC`
         );
         res.json({ success: true, events });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Admin: All Events with Venue & Owner details
@@ -192,7 +193,7 @@ app.post('/api/admin/events/approve', async (req, res) => {
     try {
         await db.execute('UPDATE Event SET Approval_Status = "APPROVED" WHERE Event_Id = ?', [req.body.eventId]);
         res.json({ success: true, message: 'Event Approved and published.' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Admin: Reject Event (Mark as REJECTED)
@@ -200,7 +201,7 @@ app.post('/api/admin/events/reject', async (req, res) => {
     try {
         await db.execute('UPDATE Event SET Approval_Status = "REJECTED" WHERE Event_Id = ?', [req.body.eventId]);
         res.json({ success: true, message: 'Event Rejected.' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Admin: Remove Event Completely (Cleanup)
@@ -208,7 +209,7 @@ app.delete('/api/admin/events/:eventId', async (req, res) => {
     try {
         await db.execute('DELETE FROM Event WHERE Event_Id = ?', [req.params.eventId]);
         res.json({ success: true, message: 'Event completely deleted.' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Admin: All Payments with Booking + User details
@@ -291,7 +292,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
             const transferId = paymentCheck.Transaction_Id.replace('TXN-TRF-', '');
             const [[transfer]] = await connection.execute('SELECT Ticket_Id FROM Ticket_Transfer WHERE Transfer_Id = ?', [transferId]);
             if (!transfer) throw new Error("Transfer record missing.");
-            
+
             const ticketId = transfer.Ticket_Id;
 
             // Fetch Ticket old booking info
@@ -304,7 +305,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
 
             // Shift ticket ownership
             await connection.execute('UPDATE Ticket SET Booking_Id = ? WHERE Ticket_Id = ?', [destBookingId, ticketId]);
-            
+
             // Adjust Sender's booking
             if (ticket.Quantity <= 1) {
                 await connection.execute('UPDATE Booking SET Booking_Status = "CANCELLED" WHERE Booking_Id = ?', [ticket.Booking_Id]);
@@ -313,11 +314,11 @@ app.post('/api/admin/approve-payment', async (req, res) => {
             } else {
                 await connection.execute('UPDATE Booking SET Quantity = Quantity - 1 WHERE Booking_Id = ?', [ticket.Booking_Id]);
             }
-            
+
             // Transfer value sequence: Reclaim ticket value from Sender's transaction
             const [[origPayment]] = await connection.execute('SELECT * FROM Payment WHERE Booking_Id = ? AND Payment_Status = "SUCCESS" LIMIT 1', [ticket.Booking_Id]);
             if (origPayment) {
-               await connection.execute('UPDATE Payment SET Amount = ROUND(Amount - ?, 2) WHERE Payment_Id = ?', [paymentCheck.Amount, origPayment.Payment_Id]);
+                await connection.execute('UPDATE Payment SET Amount = ROUND(Amount - ?, 2) WHERE Payment_Id = ?', [paymentCheck.Amount, origPayment.Payment_Id]);
             }
 
             // Erase phantom trigger tickets 
@@ -334,7 +335,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
         } else {
             // Standard Ticket Booking Confirmation
             await connection.execute('UPDATE Booking SET Booking_Status = "CONFIRMED" WHERE Booking_Id = ?', [paymentCheck.Booking_Id]);
-            
+
             const [[booking]] = await connection.execute('SELECT Quantity FROM Booking WHERE Booking_Id = ?', [paymentCheck.Booking_Id]);
             for (let i = 0; i < booking.Quantity; i++) {
                 const ticketId = Math.floor(Math.random() * 1000000);
@@ -346,7 +347,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
             await connection.commit();
             res.json({ success: true, message: 'Payment approved. Booking confirmed. Tickets generated.' });
         }
-    } catch(err) {
+    } catch (err) {
         await connection.rollback();
         res.status(500).json({ success: false, error: err.message });
     } finally { connection.release(); }
@@ -355,12 +356,12 @@ app.post('/api/admin/approve-payment', async (req, res) => {
 // Admin: Dashboard Stats
 app.get('/api/admin/stats', async (req, res) => {
     try {
-        const [[{totalUsers}]] = await db.execute('SELECT COUNT(*) as totalUsers FROM Users');
-        const [[{totalEvents}]] = await db.execute('SELECT COUNT(*) as totalEvents FROM Event');
-        const [[{totalBookings}]] = await db.execute('SELECT COUNT(*) as totalBookings FROM Booking');
-        const [[{totalRevenue}]] = await db.execute('SELECT COALESCE(SUM(Amount),0) as totalRevenue FROM Payment WHERE Payment_Status = "SUCCESS"');
-        const [[{pendingBusinesses}]] = await db.execute('SELECT COUNT(*) as pendingBusinesses FROM Business_Account WHERE Approval_Status = "PENDING"');
-        res.json({ success: true, stats: { totalUsers, totalEvents, totalBookings, totalRevenue, pendingBusinesses }});
+        const [[{ totalUsers }]] = await db.execute('SELECT COUNT(*) as totalUsers FROM Users');
+        const [[{ totalEvents }]] = await db.execute('SELECT COUNT(*) as totalEvents FROM Event');
+        const [[{ totalBookings }]] = await db.execute('SELECT COUNT(*) as totalBookings FROM Booking');
+        const [[{ totalRevenue }]] = await db.execute('SELECT COALESCE(SUM(Amount),0) as totalRevenue FROM Payment WHERE Payment_Status = "SUCCESS"');
+        const [[{ pendingBusinesses }]] = await db.execute('SELECT COUNT(*) as pendingBusinesses FROM Business_Account WHERE Approval_Status = "PENDING"');
+        res.json({ success: true, stats: { totalUsers, totalEvents, totalBookings, totalRevenue, pendingBusinesses } });
     } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -370,7 +371,7 @@ app.post('/api/admin/repair-seats', async (req, res) => {
         const [events] = await db.execute('SELECT Event_Id, Total_Seats FROM Event');
         let fixed = 0;
         for (const ev of events) {
-            const [[{ticketCount}]] = await db.execute(
+            const [[{ ticketCount }]] = await db.execute(
                 `SELECT COUNT(*) as ticketCount FROM Ticket t
                  JOIN Booking b ON t.Booking_Id = b.Booking_Id
                  WHERE b.Event_Id = ? AND b.Booking_Status = 'CONFIRMED'`, [ev.Event_Id]);
@@ -389,7 +390,7 @@ app.get('/api/business/status/:userId', async (req, res) => {
     try {
         const [rows] = await db.execute('SELECT Approval_Status FROM Business_Account WHERE UserId = ?', [req.params.userId]);
         res.json({ success: true, business: rows[0] });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/api/business', async (req, res) => {
@@ -399,14 +400,14 @@ app.post('/api/business', async (req, res) => {
         await db.execute('INSERT INTO Business_Account (Business_Id, Registration_Fee, Payment_Status, Approval_Status, UserId) VALUES (?, ?, "PAID", "PENDING", ?)',
             [businessId, fee, userId]);
         res.json({ success: true, message: 'Wait for approval.' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/api/events/create', async (req, res) => {
     try {
         const { name, type, seats, date, deadline, commission, userId } = req.body;
         const [businesses] = await db.execute('SELECT Business_Id FROM Business_Account WHERE UserId = ? AND Approval_Status = "APPROVED"', [userId]);
-        if(businesses.length === 0) return res.status(403).json({ success: false, error: 'Unauthorized.' });
+        if (businesses.length === 0) return res.status(403).json({ success: false, error: 'Unauthorized.' });
         const venueId = Math.floor(Math.random() * 1000000);
         await db.execute('INSERT INTO Venue (Venue_Id, Venue_Name, Location, Capacity, Business_Id) VALUES (?, ?, "Digital Registration", ?, ?)',
             [venueId, name, seats, businesses[0].Business_Id]);
@@ -416,7 +417,7 @@ app.post('/api/events/create', async (req, res) => {
         await db.execute('INSERT INTO Event (Event_Id, Event_Name, Event_Type, Event_Date, Total_Seats, Available_Seats, Venue_Id, Booking_Deadline, Commission_Rate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [eventId, name, type, date, seats, seats, venueId, bookingDeadline, commRate]);
         res.json({ success: true, message: 'Event Published' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.get('/api/business/events/:userId', async (req, res) => {
@@ -428,7 +429,7 @@ app.get('/api/business/events/:userId', async (req, res) => {
              JOIN Business_Account ba ON v.Business_Id = ba.Business_Id
              WHERE ba.UserId = ? ORDER BY e.Event_Date DESC`, [req.params.userId]);
         res.json({ success: true, events });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Owner: All bookings for owner's events with user details
@@ -463,7 +464,7 @@ app.post('/api/booking', async (req, res) => {
     const connection = await db.getConnection();
     try {
         const { userId, eventId, quantity } = req.body;
-        if (!userId || !eventId || !quantity) return res.status(400).json({success: false, error: "Missing fields"});
+        if (!userId || !eventId || !quantity) return res.status(400).json({ success: false, error: "Missing fields" });
         await connection.beginTransaction();
         const [events] = await connection.execute('SELECT Available_Seats, Booking_Deadline, Approval_Status FROM Event WHERE Event_Id = ? FOR UPDATE', [eventId]);
         if (events.length === 0 || events[0].Available_Seats < quantity) throw new Error("Not enough seats available.");
@@ -517,14 +518,14 @@ app.post('/api/tickets/cancel', async (req, res) => {
     try {
         const { ticketId, bookingId } = req.body;
         await connection.beginTransaction();
-        
+
         // Get event from booking
         const [bookings] = await connection.execute('SELECT Event_Id, Quantity FROM Booking WHERE Booking_Id = ?', [bookingId]);
         if (bookings.length === 0) throw new Error("Booking not found");
-        
+
         // Delete the specific ticket
         await connection.execute('DELETE FROM Ticket WHERE Ticket_Id = ?', [ticketId]);
-        
+
         // Update booking quantity
         const newQty = bookings[0].Quantity - 1;
         if (newQty <= 0) {
@@ -536,13 +537,13 @@ app.post('/api/tickets/cancel', async (req, res) => {
             await connection.execute('UPDATE Event SET Available_Seats = Available_Seats + 1 WHERE Event_Id = ?', [bookings[0].Event_Id]);
             await connection.execute('UPDATE Booking SET Quantity = ? WHERE Booking_Id = ?', [newQty, bookingId]);
         }
-        
+
         // Promote from waitlist if seats opened up
         await promoteFromWaitlist(bookings[0].Event_Id, connection);
-        
+
         await connection.commit();
         res.json({ success: true, message: 'Ticket cancelled. 1 seat restored.' });
-    } catch(err) {
+    } catch (err) {
         await connection.rollback();
         res.status(500).json({ success: false, error: err.message });
     } finally { connection.release(); }
@@ -565,7 +566,7 @@ app.get('/api/bookings/user/:userId', async (req, res) => {
             } else { bookings[i].tickets = []; }
         }
         res.json({ success: true, bookings });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -582,7 +583,7 @@ app.get('/api/payments/user/:userId', async (req, res) => {
              WHERE b.UserId = ?
              ORDER BY p.Payment_Id DESC`, [req.params.userId]);
         res.json({ success: true, payments });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -615,7 +616,7 @@ app.post('/api/waitlist/join', async (req, res) => {
         await db.execute('INSERT INTO Waitlist (Waitlist_Id, UserId, Event_Id, Quantity, Priority) VALUES (?, ?, ?, ?, ?)',
             [id, userId, eventId, quantity || 1, 'NORMAL']);
         res.json({ success: true, message: 'Added to waitlist!' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.get('/api/waitlist/:eventId', async (req, res) => {
@@ -624,7 +625,7 @@ app.get('/api/waitlist/:eventId', async (req, res) => {
             `SELECT w.*, u.Name, u.Email FROM Waitlist w JOIN Users u ON w.UserId = u.UserId
              WHERE w.Event_Id = ? AND w.Status = 'WAITING' ORDER BY w.Priority DESC, w.Created_At ASC`, [req.params.eventId]);
         res.json({ success: true, waitlist: rows });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.get('/api/waitlist/user/:userId', async (req, res) => {
@@ -633,7 +634,7 @@ app.get('/api/waitlist/user/:userId', async (req, res) => {
             `SELECT w.*, e.Event_Name, e.Event_Date FROM Waitlist w JOIN Event e ON w.Event_Id = e.Event_Id
              WHERE w.UserId = ? ORDER BY w.Created_At DESC`, [req.params.userId]);
         res.json({ success: true, waitlist: rows });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -646,21 +647,21 @@ app.post('/api/seats/lock', async (req, res) => {
         await db.execute('DELETE FROM Seat_Lock WHERE Expires_At < NOW()');
         // Check available seats minus active locks
         const [[event]] = await db.execute('SELECT Available_Seats FROM Event WHERE Event_Id = ?', [eventId]);
-        const [[{lockedSeats}]] = await db.execute('SELECT COALESCE(SUM(Quantity),0) as lockedSeats FROM Seat_Lock WHERE Event_Id = ?', [eventId]);
+        const [[{ lockedSeats }]] = await db.execute('SELECT COALESCE(SUM(Quantity),0) as lockedSeats FROM Seat_Lock WHERE Event_Id = ?', [eventId]);
         const realAvailable = event.Available_Seats - lockedSeats;
         if (realAvailable < quantity) return res.status(400).json({ success: false, error: `Only ${realAvailable} seats available.` });
         const lockId = Math.floor(Math.random() * 1000000);
         await db.execute('INSERT INTO Seat_Lock (Lock_Id, Event_Id, UserId, Quantity, Expires_At) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 2 MINUTE))',
             [lockId, eventId, userId, quantity]);
         res.json({ success: true, lockId, expiresIn: 120 });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/api/seats/release', async (req, res) => {
     try {
         await db.execute('DELETE FROM Seat_Lock WHERE Lock_Id = ?', [req.body.lockId]);
         res.json({ success: true });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -674,7 +675,7 @@ app.get('/api/refund/calculate/:bookingId', async (req, res) => {
              LEFT JOIN Payment p ON p.Booking_Id = b.Booking_Id
              WHERE b.Booking_Id = ? LIMIT 1`, [req.params.bookingId]);
         if (!booking) return res.status(404).json({ success: false, error: 'Booking not found' });
-        const hoursLeft = (new Date(booking.Event_Date) - new Date()) / (1000*60*60);
+        const hoursLeft = (new Date(booking.Event_Date) - new Date()) / (1000 * 60 * 60);
         let refundPct = 0;
         if (hoursLeft > 24) refundPct = 100;
         else if (hoursLeft > 12) refundPct = 75;
@@ -682,7 +683,7 @@ app.get('/api/refund/calculate/:bookingId', async (req, res) => {
         else if (hoursLeft > 0) refundPct = 30;
         const refundAmount = Math.round(booking.Amount * refundPct / 100);
         res.json({ success: true, refundPct, refundAmount, totalPaid: booking.Amount, hoursLeft: Math.round(hoursLeft) });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -710,7 +711,7 @@ app.post('/api/tickets/transfer', async (req, res) => {
         await db.execute('INSERT INTO Ticket_Transfer (Transfer_Id, Ticket_Id, From_UserId, To_UserId, Status) VALUES (?, ?, ?, ?, "PENDING")',
             [transId, ticketId, fromUserId, toUser.UserId]);
         res.json({ success: true, message: `Transfer request sent to ${toEmail} (${toUser.Name}). Awaiting their acceptance.` });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/api/tickets/pay-transfer', async (req, res) => {
@@ -735,16 +736,16 @@ app.post('/api/tickets/pay-transfer', async (req, res) => {
         // Create the PENDING payment holding wrapper
         const unitPrice = 500; // Standard price extracted for this model
         const trfPaymentId = Math.floor(Math.random() * 1000000);
-        
+
         await connection.execute(
             'INSERT INTO Payment (Payment_Id, Transaction_Id, Amount, Payment_Status, Booking_Id) VALUES (?, ?, ?, "PENDING", ?)',
             [trfPaymentId, `TXN-TRF-${transferId}`, unitPrice, destBookingId]);
 
         await connection.commit();
         res.json({ success: true, message: 'Transfer payment submitted! Awaiting Admin approval to confirm ticket shift.' });
-    } catch(err) { 
-        await connection.rollback(); 
-        res.status(500).json({ success: false, error: err.message }); 
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ success: false, error: err.message });
     }
     finally { connection.release(); }
 });
@@ -753,7 +754,7 @@ app.post('/api/tickets/reject-transfer', async (req, res) => {
     try {
         await db.execute('UPDATE Ticket_Transfer SET Status = "REJECTED" WHERE Transfer_Id = ? AND To_UserId = ?', [req.body.transferId, req.body.userId]);
         res.json({ success: true, message: 'Transfer rejected.' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.get('/api/tickets/transfers/:userId', async (req, res) => {
@@ -768,7 +769,7 @@ app.get('/api/tickets/transfers/:userId', async (req, res) => {
              LEFT JOIN Event e ON b.Event_Id = e.Event_Id
              WHERE t.From_UserId = ? OR t.To_UserId = ? ORDER BY t.Transfer_Date DESC`, [req.params.userId, req.params.userId]);
         res.json({ success: true, transfers: rows });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Admin: Get All Transfers for the entire platform
@@ -784,7 +785,7 @@ app.get('/api/admin/transfers', async (req, res) => {
              JOIN Event e ON b.Event_Id = e.Event_Id
              ORDER BY t.Transfer_Date DESC`);
         res.json({ success: true, transfers: rows });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Admin: Get All Waitlist entries for the entire platform
@@ -797,7 +798,7 @@ app.get('/api/admin/waitlist', async (req, res) => {
              JOIN Event e ON w.Event_Id = e.Event_Id
              ORDER BY w.Created_At DESC`);
         res.json({ success: true, waitlist: rows });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -810,21 +811,21 @@ app.post('/api/admin/blacklist', async (req, res) => {
         await db.execute('INSERT INTO Blacklist (Blacklist_Id, UserId, Reason) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE Reason = ?',
             [id, userId, reason, reason]);
         res.json({ success: true, message: 'User blacklisted.' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/api/admin/unblacklist', async (req, res) => {
     try {
         await db.execute('DELETE FROM Blacklist WHERE UserId = ?', [req.body.userId]);
         res.json({ success: true, message: 'User removed from blacklist.' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.get('/api/admin/blacklisted', async (req, res) => {
     try {
         const [rows] = await db.execute('SELECT b.*, u.Name, u.Email FROM Blacklist b JOIN Users u ON b.UserId = u.UserId');
         res.json({ success: true, blacklisted: rows });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -834,20 +835,20 @@ app.get('/api/notifications/:userId', async (req, res) => {
     try {
         // Trigger Smart Reminders scan
         await generateUpcomingReminders(db);
-        
+
         const [rows] = await db.execute(
             `SELECT r.*, e.Event_Name, e.Event_Date FROM Reminder r
              JOIN Event e ON r.Event_Id = e.Event_Id
              WHERE r.UserId = ? ORDER BY r.Created_At DESC LIMIT 20`, [req.params.userId]);
         res.json({ success: true, notifications: rows });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/api/notifications/read', async (req, res) => {
     try {
         await db.execute('UPDATE Reminder SET Is_Read = TRUE WHERE Reminder_Id = ?', [req.body.reminderId]);
         res.json({ success: true });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/api/notifications/create', async (req, res) => {
@@ -857,7 +858,7 @@ app.post('/api/notifications/create', async (req, res) => {
         await db.execute('INSERT INTO Reminder (Reminder_Id, UserId, Event_Id, Remind_Type, Message) VALUES (?, ?, ?, ?, ?)',
             [id, userId, eventId, type || '1DAY', message]);
         res.json({ success: true });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -881,10 +882,10 @@ app.get('/api/admin/analytics', async (req, res) => {
              LEFT JOIN Payment p ON b.Booking_Id = p.Booking_Id AND p.Payment_Status = 'SUCCESS'
              GROUP BY e.Event_Type`);
         // Cancellation rate
-        const [[{totalB}]] = await db.execute('SELECT COUNT(*) as totalB FROM Booking');
-        const [[{cancelledB}]] = await db.execute('SELECT COUNT(*) as cancelledB FROM Booking WHERE Booking_Status = "CANCELLED"');
-        res.json({ success: true, analytics: { sellSpeed, hourly, revenueByType, cancellationRate: totalB > 0 ? Math.round(cancelledB/totalB*100) : 0 }});
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+        const [[{ totalB }]] = await db.execute('SELECT COUNT(*) as totalB FROM Booking');
+        const [[{ cancelledB }]] = await db.execute('SELECT COUNT(*) as cancelledB FROM Booking WHERE Booking_Status = "CANCELLED"');
+        res.json({ success: true, analytics: { sellSpeed, hourly, revenueByType, cancellationRate: totalB > 0 ? Math.round(cancelledB / totalB * 100) : 0 } });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -907,7 +908,7 @@ app.get('/api/owner/suggestions/:userId', async (req, res) => {
              JOIN Business_Account ba ON v.Business_Id = ba.Business_Id
              WHERE ba.UserId = ? GROUP BY DAYNAME(b.Booking_Date) ORDER BY Count DESC`, [req.params.userId]);
         res.json({ success: true, suggestions: events, bestDays: dayData });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -929,7 +930,7 @@ app.get('/api/admin/predictions', async (req, res) => {
             return { ...r, cancelRate: Math.round(cancelRate * 100), risk };
         });
         res.json({ success: true, predictions });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -939,8 +940,8 @@ app.post('/api/events/toggle-overbooking', async (req, res) => {
     try {
         const { eventId, allow, pct } = req.body;
         await db.execute('UPDATE Event SET Allow_Overbooking = ?, Overbooking_Pct = ? WHERE Event_Id = ?', [allow, pct || 10, eventId]);
-        res.json({ success: true, message: allow ? `Overbooking enabled at ${pct||10}%` : 'Overbooking disabled' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+        res.json({ success: true, message: allow ? `Overbooking enabled at ${pct || 10}%` : 'Overbooking disabled' });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -950,7 +951,7 @@ app.post('/api/events/toggle-kyc', async (req, res) => {
     try {
         await db.execute('UPDATE Event SET KYC_Required = ? WHERE Event_Id = ?', [req.body.kycRequired, req.body.eventId]);
         res.json({ success: true });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -965,7 +966,7 @@ app.post('/api/events/duplicate/:eventId', async (req, res) => {
             'INSERT INTO Event (Event_Id, Event_Name, Event_Type, Event_Date, Total_Seats, Available_Seats, Venue_Id, Booking_Deadline, Commission_Rate, KYC_Required) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [newId, ev.Event_Name + ' (Copy)', ev.Event_Type, ev.Event_Date, ev.Total_Seats, ev.Total_Seats, ev.Venue_Id, ev.Booking_Deadline, ev.Commission_Rate, ev.KYC_Required]);
         res.json({ success: true, message: 'Event duplicated!', newEventId: newId });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -975,7 +976,7 @@ app.get('/api/group-members/:userId', async (req, res) => {
     try {
         const [rows] = await db.execute('SELECT * FROM Group_Member WHERE UserId = ?', [req.params.userId]);
         res.json({ success: true, members: rows });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/api/group-members', async (req, res) => {
@@ -985,14 +986,14 @@ app.post('/api/group-members', async (req, res) => {
         await db.execute('INSERT INTO Group_Member (Member_Id, UserId, Member_Name, Member_Email, Member_Phone) VALUES (?, ?, ?, ?, ?)',
             [id, userId, name, email, phone]);
         res.json({ success: true, message: 'Member saved!' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.delete('/api/group-members/:memberId', async (req, res) => {
     try {
         await db.execute('DELETE FROM Group_Member WHERE Member_Id = ?', [req.params.memberId]);
         res.json({ success: true });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -1007,7 +1008,7 @@ app.get('/api/rewards/:userId', async (req, res) => {
             rows = [{ Points: 0, Badge: 'NONE', Total_Bookings: 0, Total_Checkins: 0 }];
         }
         // Recalculate from actual data
-        const [[{bookCount}]] = await db.execute('SELECT COUNT(*) as bookCount FROM Booking WHERE UserId = ? AND Booking_Status = "CONFIRMED"', [req.params.userId]);
+        const [[{ bookCount }]] = await db.execute('SELECT COUNT(*) as bookCount FROM Booking WHERE UserId = ? AND Booking_Status = "CONFIRMED"', [req.params.userId]);
         const points = bookCount * 10;
         let badge = 'NONE';
         if (points >= 100) badge = 'SUPER_FAN';
@@ -1016,7 +1017,7 @@ app.get('/api/rewards/:userId', async (req, res) => {
         else if (points >= 10) badge = 'EARLY_BIRD';
         await db.execute('UPDATE User_Rewards SET Points = ?, Badge = ?, Total_Bookings = ? WHERE UserId = ?', [points, badge, bookCount, req.params.userId]);
         res.json({ success: true, rewards: { Points: points, Badge: badge, Total_Bookings: bookCount } });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -1027,7 +1028,7 @@ app.post('/api/tickets/checkin', async (req, res) => {
         const { ticketId } = req.body;
         await db.execute('UPDATE Ticket SET Checked_In = TRUE, Checkin_Time = NOW() WHERE Ticket_Id = ?', [ticketId]);
         res.json({ success: true, message: 'Checked in!' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.get('/api/events/checkin-stats/:eventId', async (req, res) => {
@@ -1039,7 +1040,7 @@ app.get('/api/events/checkin-stats/:eventId', async (req, res) => {
              FROM Ticket t JOIN Booking b ON t.Booking_Id = b.Booking_Id
              WHERE b.Event_Id = ? AND b.Booking_Status = 'CONFIRMED'`, [req.params.eventId]);
         res.json({ success: true, stats });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ============================================================
@@ -1071,7 +1072,7 @@ app.post('/api/messages/send', async (req, res) => {
             [fromUserId, toUserId, message, messageType || 'GENERAL']
         );
         res.json({ success: true, message: 'Message sent!' });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Get all conversations for a user (grouped by the other person)
@@ -1087,7 +1088,7 @@ app.get('/api/messages/inbox/:userId', async (req, res) => {
              JOIN Users u_to ON m.To_UserId = u_to.UserId
              WHERE m.From_UserId = ? OR m.To_UserId = ?
              ORDER BY m.Created_At DESC`, [uid, uid]);
-        
+
         // Group into conversations by the other user
         const convos = {};
         rows.forEach(msg => {
@@ -1110,7 +1111,7 @@ app.get('/api/messages/inbox/:userId', async (req, res) => {
             }
         });
         res.json({ success: true, conversations: Object.values(convos) });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Get conversation between two users
@@ -1123,14 +1124,14 @@ app.get('/api/messages/conversation/:userId1/:userId2', async (req, res) => {
              WHERE (m.From_UserId = ? AND m.To_UserId = ?) OR (m.From_UserId = ? AND m.To_UserId = ?)
              ORDER BY m.Created_At ASC`,
             [userId1, userId2, userId2, userId1]);
-        
+
         // Mark messages as read
         await db.execute(
             'UPDATE Messages SET Is_Read = TRUE WHERE To_UserId = ? AND From_UserId = ? AND Is_Read = FALSE',
             [userId1, userId2]);
-        
+
         res.json({ success: true, messages: rows });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Mark a message as read
@@ -1138,7 +1139,7 @@ app.post('/api/messages/read', async (req, res) => {
     try {
         await db.execute('UPDATE Messages SET Is_Read = TRUE WHERE Message_Id = ?', [req.body.messageId]);
         res.json({ success: true });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Get all users the current user can message (for starting new conversations)
@@ -1156,19 +1157,28 @@ app.get('/api/messages/contacts/:userId', async (req, res) => {
         }
         const [users] = await db.execute(query, [uid]);
         res.json({ success: true, contacts: users });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // Get unread message count
 app.get('/api/messages/unread/:userId', async (req, res) => {
     try {
-        const [[{count}]] = await db.execute(
+        const [[{ count }]] = await db.execute(
             'SELECT COUNT(*) as count FROM Messages WHERE To_UserId = ? AND Is_Read = FALSE', [req.params.userId]);
         res.json({ success: true, unreadCount: count });
-    } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.listen(PORT, () => {
     console.log(`Backend securely running on http://localhost:${PORT}`);
 });
 
+app.get("/api/users", async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT * FROM Users");
+        res.json(rows);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
