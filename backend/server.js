@@ -1180,10 +1180,6 @@ app.get('/api/messages/unread/:userId', async (req, res) => {
     } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.listen(PORT, () => {
-    console.log(`Backend securely running on http://localhost:${PORT}`);
-});
-
 app.get("/api/users", async (req, res) => {
     try {
         const [rows] = await pool.query("SELECT * FROM Users");
@@ -1193,6 +1189,7 @@ app.get("/api/users", async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 });
+
 app.get("/test-db", async (req, res) => {
     try {
         const [rows] = await pool.query("SELECT 1");
@@ -1200,4 +1197,8 @@ app.get("/test-db", async (req, res) => {
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
+});
+
+app.listen(PORT, () => {
+    console.log(`Backend securely running on http://localhost:${PORT}`);
 });
