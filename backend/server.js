@@ -5,7 +5,17 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const mysql = require('mysql2/promise');
 
-const pool = mysql.createPool(process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_URL || "mysql://root:ysHjhTaXKemgPEAGGkEvXXrPeiDZyEaz@mainline.proxy.rlwy.net:23066/railway");
+let connectionString = process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_URL;
+let source = "ENVIRONMENT VARIABLE";
+
+if (!connectionString) {
+  connectionString = "mysql://root:ysHjhTaXKemgPEAGGkEvXXrPeiDZyEaz@mainline.proxy.rlwy.net:23066/railway";
+  source = "FALLBACK (Check Render/Railway Environment Variables!)";
+}
+
+console.log(`📡 Database connection source: ${source}`);
+const pool = mysql.createPool(connectionString);
+
 
 
 async function testDB() {
