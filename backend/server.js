@@ -5,18 +5,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const mysql = require('mysql2/promise');
 
-const url = new URL(process.env.DATABASE_URL || "mysql://root:ysHjhTaXKemgPEAGGkEvXXrPeiDZyEaz@mainline.proxy.rlwy.net:23066/railway");
+const pool = mysql.createPool(process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_URL || "mysql://root:ysHjhTaXKemgPEAGGkEvXXrPeiDZyEaz@mainline.proxy.rlwy.net:23066/railway");
 
-const pool = mysql.createPool({
-  host: url.hostname,
-  user: url.username,
-  password: url.password,
-  database: url.pathname.replace("/", ""),
-  port: url.port || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
 
 async function testDB() {
   try {
@@ -30,7 +20,8 @@ async function testDB() {
 testDB();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 10000;
+
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt';
 
 app.use(cors());
