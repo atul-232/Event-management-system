@@ -5,7 +5,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const mysql = require('mysql2/promise');
 
-const DB_URL_STRING = process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_URL || "mysql://root:ysHjhTaXKemgPEAGGkEvXXrPeiDZyEaz@mainline.proxy.rlwy.net:23066/railway";
+const DB_URL_STRING = (process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_URL || "mysql://root:ysHjhTaXKemgPEAGGkEvXXrPeiDZyEaz@mainline.proxy.rlwy.net:23066/railway").trim();
+
 
 // Robust manual parsing
 const dbUrl = new URL(DB_URL_STRING);
