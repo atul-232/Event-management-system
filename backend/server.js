@@ -28,7 +28,9 @@ console.log(`📡 Host: ${poolConfig.host}`);
 console.log(`📡 Port: ${poolConfig.port}`);
 console.log(`📡 User: ${poolConfig.user}`);
 console.log(`📡 Database: ${poolConfig.database}`);
+console.log(`📡 Password Length: ${poolConfig.password ? poolConfig.password.length : 0} characters`);
 console.log("-----------------------------------------");
+
 
 const pool = mysql.createPool(poolConfig);
 
