@@ -5,16 +5,32 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const mysql = require('mysql2/promise');
 
-let connectionString = process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_URL;
-let source = "ENVIRONMENT VARIABLE";
+const DB_URL_STRING = process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_URL || "mysql://root:ysHjhTaXKemgPEAGGkEvXXrPeiDZyEaz@mainline.proxy.rlwy.net:23066/railway";
 
-if (!connectionString) {
-  connectionString = "mysql://root:ysHjhTaXKemgPEAGGkEvXXrPeiDZyEaz@mainline.proxy.rlwy.net:23066/railway";
-  source = "FALLBACK (Check Render/Railway Environment Variables!)";
-}
+// Robust manual parsing
+const dbUrl = new URL(DB_URL_STRING);
+const poolConfig = {
+    host: dbUrl.hostname,
+    user: dbUrl.username,
+    password: dbUrl.password,
+    database: dbUrl.pathname.replace("/", ""),
+    port: parseInt(dbUrl.port) || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    connectTimeout: 15000 // Higher timeout for cross-platform connections
+};
 
-console.log(`📡 Database connection source: ${source}`);
-const pool = mysql.createPool(connectionString);
+console.log("-----------------------------------------");
+console.log(`📡 DB Connection Source: ${process.env.MYSQL_PUBLIC_URL ? 'MYSQL_PUBLIC_URL' : (process.env.DATABASE_URL ? 'DATABASE_URL' : 'FALLBACK')}`);
+console.log(`📡 Host: ${poolConfig.host}`);
+console.log(`📡 Port: ${poolConfig.port}`);
+console.log(`📡 User: ${poolConfig.user}`);
+console.log(`📡 Database: ${poolConfig.database}`);
+console.log("-----------------------------------------");
+
+const pool = mysql.createPool(poolConfig);
+
 
 
 
