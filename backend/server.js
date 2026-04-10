@@ -19,8 +19,12 @@ const poolConfig = {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    connectTimeout: 15000 // Higher timeout for cross-platform connections
+    connectTimeout: 15000,
+    ssl: {
+        rejectUnauthorized: false // Required for Railway/Render public connections
+    }
 };
+
 
 console.log("-----------------------------------------");
 console.log(`📡 DB Connection Source: ${process.env.MYSQL_PUBLIC_URL ? 'MYSQL_PUBLIC_URL' : (process.env.DATABASE_URL ? 'DATABASE_URL' : 'FALLBACK')}`);
