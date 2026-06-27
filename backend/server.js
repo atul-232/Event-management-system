@@ -129,7 +129,8 @@ app.get('/api/admin/users', async (req, res) => {
                    COALESCE(SUM(CASE WHEN b.Booking_Status = 'CONFIRMED' THEN b.Quantity ELSE 0 END), 0) as TotalTickets
             FROM Users u
             LEFT JOIN Booking b ON u.UserId = b.UserId
-            GROUP BY u.UserId
+            GROUP BY u.UserId, u.Name, u.Email, u.Phone_Number, u.Role, 
+                     u.Address, u.Age, u.Gender, u.Proof_Id, u.Country
             ORDER BY u.Role ASC
         `;
         const [users] = await pool.execute(query);
@@ -310,9 +311,14 @@ app.post('/api/admin/cancel-booking', async (req, res) => {
     try {
         const { bookingId } = req.body;
         await connection.beginTransaction();
-        const [[booking]] = await connection.execute('SELECT Event_Id FROM Booking WHERE Booking_Id = ?', [bookingId]);
-        await connection.execute('UPDATE Booking SET Booking_Status = "CANCELLED" WHERE Booking_Id = ?', [bookingId]);
-        if (booking) await promoteFromWaitlist(booking.Event_Id, connection);
+        const [[booking]] = await connection.execute('SELECT Event_Id, Quantity, Booking_Status FROM Booking WHERE Booking_Id = ?', [bookingId]);
+        if (booking) {
+            if (booking.Booking_Status === 'CONFIRMED') {
+                await connection.execute('UPDATE Event SET Available_Seats = Available_Seats + ? WHERE Event_Id = ?', [booking.Quantity, booking.Event_Id]);
+            }
+            await connection.execute('UPDATE Booking SET Booking_Status = "CANCELLED" WHERE Booking_Id = ?', [bookingId]);
+            await promoteFromWaitlist(booking.Event_Id, connection);
+        }
         await connection.commit();
         res.json({ success: true, message: 'Booking cancelled by Admin. Waitlist promoted if applicable.' });
     } catch (err) { await connection.rollback(); res.status(500).json({ success: false, error: err.message }); }
@@ -384,12 +390,16 @@ app.post('/api/admin/approve-payment', async (req, res) => {
             // Standard Ticket Booking Confirmation
             await connection.execute('UPDATE Booking SET Booking_Status = "CONFIRMED" WHERE Booking_Id = ?', [paymentCheck.Booking_Id]);
 
-            const [[booking]] = await connection.execute('SELECT Quantity FROM Booking WHERE Booking_Id = ?', [paymentCheck.Booking_Id]);
+            const [[booking]] = await connection.execute('SELECT Event_Id, Quantity FROM Booking WHERE Booking_Id = ?', [paymentCheck.Booking_Id]);
             for (let i = 0; i < booking.Quantity; i++) {
                 const ticketId = Math.floor(Math.random() * 1000000);
                 const seatNumber = `S-${ticketId % 1000}`;
                 await connection.execute('INSERT INTO Ticket (Ticket_Id, Seat_Number, Booking_Id) VALUES (?, ?, ?)',
                     [ticketId, seatNumber, paymentCheck.Booking_Id]);
+            }
+
+            if (booking) {
+                await connection.execute('UPDATE Event SET Available_Seats = Available_Seats - ? WHERE Event_Id = ?', [booking.Quantity, booking.Event_Id]);
             }
 
             await connection.commit();
@@ -578,7 +588,8 @@ app.post('/api/tickets/cancel', async (req, res) => {
         const newQty = bookings[0].Quantity - 1;
         if (newQty <= 0) {
             // Cannot set Quantity=0 due to CHECK constraint. 
-            // Just cancel. The After_Booking_Cancellation trigger will automatically restore OLD.Quantity (1) seat.
+            // Restore the seat programmatically since there is no database trigger
+            await connection.execute('UPDATE Event SET Available_Seats = Available_Seats + 1 WHERE Event_Id = ?', [bookings[0].Event_Id]);
             await connection.execute('UPDATE Booking SET Booking_Status = "CANCELLED" WHERE Booking_Id = ?', [bookingId]);
         } else {
             // No trigger runs, so manually restore 1 seat
@@ -642,9 +653,14 @@ app.post('/api/refund', async (req, res) => {
     try {
         const { bookingId } = req.body;
         await connection.beginTransaction();
-        const [[booking]] = await connection.execute('SELECT Event_Id FROM Booking WHERE Booking_Id = ?', [bookingId]);
-        await connection.execute('UPDATE Booking SET Booking_Status = "CANCELLED" WHERE Booking_Id = ?', [bookingId]);
-        if (booking) await promoteFromWaitlist(booking.Event_Id, connection);
+        const [[booking]] = await connection.execute('SELECT Event_Id, Quantity, Booking_Status FROM Booking WHERE Booking_Id = ?', [bookingId]);
+        if (booking) {
+            if (booking.Booking_Status === 'CONFIRMED') {
+                await connection.execute('UPDATE Event SET Available_Seats = Available_Seats + ? WHERE Event_Id = ?', [booking.Quantity, booking.Event_Id]);
+            }
+            await connection.execute('UPDATE Booking SET Booking_Status = "CANCELLED" WHERE Booking_Id = ?', [bookingId]);
+            await promoteFromWaitlist(booking.Event_Id, connection);
+        }
         await connection.commit();
         res.json({ success: true, message: 'Booking Cancelled. Refund processed.' });
     } catch (err) { await connection.rollback(); res.status(500).json({ success: false, error: err.message }); }
