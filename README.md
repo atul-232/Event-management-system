@@ -1,98 +1,102 @@
 # EventTix Enterprise - Event Management & Ticket Booking System
 
-EventTix Enterprise is a full-stack web application designed to make creating, managing, and booking event tickets simple and efficient.
+**Live Demo:** [https://event-management-system-kyiz.vercel.app/](https://event-management-system-kyiz.vercel.app/)
 
-The application supports three user roles: Customers (who browse and book tickets), Venue Owners (who list venues and host events), and Administrators (who manage and approve listings).
+*Note: Free-tier servers automatically go to sleep after 15 minutes of inactivity. If the live link fails to load or takes a long time to respond, the backend is likely waking up from a cold start. You can run the application locally on your computer for a faster experience by following the local setup guide below.*
 
 ---
 
-## Features by Role
+## About the Project
 
-### Customers
-- Browse Events: View approved events, dates, locations, ticket prices, and available seats.
-- Book and Pay: Select ticket quantities and complete bookings using a simulated card payment.
-- My Tickets: View and download your digital tickets, which include seat numbers and check-in status.
-- Transfer Tickets: Send tickets to another user's email if you can no longer attend.
-- Join Waitlists: If an event sells out, join a priority queue to secure tickets when others cancel.
+EventTix Enterprise is a full-stack web application designed for event management and ticket booking. It features a complete transactional flow from listing events to booking tickets and checking in.
 
-### Venue Owners
-- Business Profile: Register as an event organizer and set up venue details.
-- Create Events: List new events, define seat capacities, set ticket prices, and booking deadlines.
-- Dashboard: Track real-time ticket bookings, customer check-in statistics, and total earnings.
-
-### Administrators
-- Approve Listings: Review and approve venue profiles and event requests before they go live on the marketplace.
-- Platform Control: Cancel bookings, process refunds, and suspend or blacklist accounts.
-- Analytics: Monitor total tickets sold, system revenue, and database statistics.
+The system supports three user roles:
+1. **Customers:** Browse events, book tickets using simulated payments, download tickets with seat numbers, transfer tickets to friends, or join waitlists if an event is sold out.
+2. **Venue Owners:** Register business profiles, pay setup fees, list venues, create events, and monitor real-time ticket sales and check-in stats.
+3. **Administrators:** Review and approve business applications, approve or reject new events, cancel bookings, issue refunds, and monitor platform revenue analytics.
 
 ---
 
 ## Tech Stack
 
-- Frontend: React.js (Vite) + Tailwind CSS (Responsive and modern UI)
-- Backend: Node.js + Express.js (REST API server)
-- Database: MySQL 8.0 (Relational database with triggers and transactions)
-- Authentication: JWT (JSON Web Tokens) & Bcrypt (Secure password hashing)
+- **Frontend:** React.js (Vite) + Tailwind CSS
+- **Backend:** Node.js + Express.js
+- **Database:** MySQL 8.0 (Triggers and transaction isolation levels)
+- **Authentication:** JWT (JSON Web Tokens) & Bcrypt
 
 ---
 
-## How to Setup and Run the Project
+## Local Setup and Installation
 
 ### Prerequisites
-Ensure you have the following installed:
-1. Node.js (v18 or newer)
-2. MySQL Database
+Make sure you have the following installed on your computer:
+1. **Node.js** (v18 or newer)
+2. **MySQL Database**
 
----
-
-### Step 1: Initialize the Database
-1. Open your terminal and run the following command to import the database schema and sample seed data:
+### Step 1: Set Up the Local Database
+1. Open your MySQL command line or GUI client (like DBeaver or MySQL Workbench).
+2. Run the following command to create the database tables and structure:
    ```bash
    mysql -u root -p < setup_complete.sql
    ```
-2. (Optional) To import the transactions and procedures setup:
+3. (Optional) Run the transactions script if you want to test procedures and locks:
    ```bash
    mysql -u root -p EventDB < task6_transactions.sql
    ```
 
----
-
-### Step 2: Start the Backend Server
-1. Navigate to the backend folder:
+### Step 2: Configure and Start the Backend
+1. Open your terminal and go to the backend directory:
    ```bash
    cd backend
    ```
-2. Create a file named .env and configure your database login details:
+2. Create a file named `.env` in this directory:
    ```env
    DATABASE_URL=mysql://root:your_mysql_password@localhost:3306/EventDB
    PORT=8080
-   JWT_SECRET=my_super_secret_jwt_key
+   JWT_SECRET=your_jwt_secret_key
    ```
-3. Install dependencies and start the backend:
+   *(Make sure to replace "your_mysql_password" with your actual local MySQL root password).*
+3. Install the dependencies:
    ```bash
    npm install
+   ```
+4. Start the server:
+   ```bash
    node server.js
    ```
-   *Expected Output: Database connected successfully!, Backend securely running on http://localhost:8080*
+   *Expected Output: "Database connected successfully!" and "Backend securely running on http://localhost:8080"*
 
----
-
-### Step 3: Start the Frontend App
-1. Open a new terminal window and navigate to the frontend folder:
+### Step 3: Configure and Start the Frontend
+1. Open a new terminal window and navigate to the frontend directory:
    ```bash
    cd frontend
    ```
-2. Install dependencies and start the React app:
+2. Install the dependencies:
    ```bash
    npm install
+   ```
+3. Start the React development server:
+   ```bash
    npm run dev
    ```
-3. Open your browser and go to: http://localhost:5174/
+4. Open the link in your browser: `http://localhost:5174/`
 
 ---
 
-## Folder Structure
+## How to Log In and Use the App
 
-- /backend - Express API server and database connection logic.
-- /frontend - React user interface, page routing, and dashboard components.
-- setup_complete.sql - SQL script for creating tables, triggers, and seeding initial data.
+You can test the application using the pre-seeded default accounts below:
+
+### 1. Log In as Administrator
+* **Role:** Manage system listings, approve organizers, and view global analytics.
+* **Email:** `admin@eventtix.com`
+* **Password:** `Admin@123`
+
+### 2. Log In as Venue Owner
+* **Role:** Register properties, post events, and review check-in statistics.
+* **Email:** `john@owner.com`
+* **Password:** `Admin@123`
+
+### 3. Log In / Register as Customer
+* **Role:** Book tickets and join waitlists.
+* **Access:** You can sign up with a new account directly on the **Register** page of the app.

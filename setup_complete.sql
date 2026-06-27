@@ -1,7 +1,3 @@
-DROP DATABASE IF EXISTS EventDB;
-CREATE DATABASE EventDB;
-USE EventDB;
-
 -- 1. Users Table
 CREATE TABLE Users(
     UserId INT PRIMARY KEY,
@@ -37,7 +33,7 @@ CREATE TABLE Venue(
     FOREIGN KEY (Business_Id) REFERENCES Business_Account(Business_Id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- 4. Event Table (FIXED)
+-- 4. Event Table
 CREATE TABLE Event(
     Event_Id INT PRIMARY KEY,
     Event_Name VARCHAR(40) NOT NULL,
@@ -100,7 +96,7 @@ CREATE TABLE Refund(
     FOREIGN KEY (Payment_Id) REFERENCES Payment(Payment_Id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- 9. Group Member Table (NEW)
+-- 9. Group Member Table
 CREATE TABLE Group_Member (
     Member_Id INT PRIMARY KEY,
     UserId INT NOT NULL,
@@ -110,7 +106,7 @@ CREATE TABLE Group_Member (
     FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
 
--- 9. Ticket Transfer Table
+-- 10. Ticket Transfer Table
 CREATE TABLE Ticket_Transfer (
     Transfer_Id INT PRIMARY KEY,
     Ticket_Id INT NOT NULL,
@@ -123,7 +119,7 @@ CREATE TABLE Ticket_Transfer (
     FOREIGN KEY (To_UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
 
--- 10. Waitlist Table
+-- 11. Waitlist Table
 CREATE TABLE Waitlist (
     Waitlist_Id INT PRIMARY KEY,
     UserId INT NOT NULL,
@@ -136,7 +132,7 @@ CREATE TABLE Waitlist (
     FOREIGN KEY (Event_Id) REFERENCES Event(Event_Id) ON DELETE CASCADE
 );
 
--- 11. Seat Lock Table
+-- 12. Seat Lock Table
 CREATE TABLE Seat_Lock (
     Lock_Id INT PRIMARY KEY,
     Event_Id INT NOT NULL,
@@ -147,7 +143,7 @@ CREATE TABLE Seat_Lock (
     FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
 
--- 12. Blacklist Table
+-- 13. Blacklist Table
 CREATE TABLE Blacklist (
     Blacklist_Id INT PRIMARY KEY,
     UserId INT NOT NULL UNIQUE,
@@ -156,7 +152,7 @@ CREATE TABLE Blacklist (
     FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
 
--- 13. User Rewards Table
+-- 14. User Rewards Table
 CREATE TABLE User_Rewards (
     Reward_Id INT PRIMARY KEY,
     UserId INT NOT NULL UNIQUE,
@@ -167,7 +163,7 @@ CREATE TABLE User_Rewards (
     FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
 
--- 14. Messages Table
+-- 15. Messages Table
 CREATE TABLE Messages (
     Message_Id INT PRIMARY KEY AUTO_INCREMENT,
     From_UserId INT NOT NULL,
@@ -180,7 +176,7 @@ CREATE TABLE Messages (
     FOREIGN KEY (To_UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
 
--- 15. Reminder Table
+-- 16. Reminder Table
 CREATE TABLE Reminder (
     Reminder_Id INT PRIMARY KEY AUTO_INCREMENT,
     UserId INT NOT NULL,
@@ -197,33 +193,6 @@ CREATE TABLE Reminder (
 CREATE INDEX user_phone ON Users(Phone_Number);
 CREATE INDEX venue_name ON Venue(Venue_Name);
 CREATE INDEX event_date ON Event(Event_Date);
-
--- TRIGGERS
-DELIMITER //
-
-CREATE TRIGGER Before_Insert_Business_Account
-BEFORE INSERT ON Business_Account
-FOR EACH ROW
-BEGIN
-    DECLARE v_role VARCHAR(20);
-    SELECT Role INTO v_role FROM Users WHERE UserId = NEW.UserId;
-    IF v_role != 'OWNER' THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User must have OWNER role to create a Business Account';
-    END IF;
-END;
-//
-
-CREATE TRIGGER Update_Available_Seats
-AFTER INSERT ON Ticket
-FOR EACH ROW
-BEGIN
-    DECLARE v_event_id INT;
-    SELECT Event_Id INTO v_event_id FROM Booking WHERE Booking_Id = NEW.Booking_Id;
-    UPDATE Event SET Available_Seats = Available_Seats - 1 WHERE Event_Id = v_event_id;
-END;
-//
-
-DELIMITER ;
 
 -- SEED DATA
 -- Insert Admin (Password: Admin@123)
@@ -243,3 +212,52 @@ VALUES (1, 'Enterprise Arena', 'Tech Park', 1000, 1);
 -- Sample Event
 INSERT INTO Event (Event_Id, Event_Name, Event_Type, Event_Date, Total_Seats, Available_Seats, Venue_Id, Approval_Status, Booking_Deadline, Commission_Rate)
 VALUES (1, 'Tech Summit 2026', 'Conference', '2026-10-15', 200, 200, 1, 'APPROVED', '2026-10-14 23:59:59', 75.00);
+
+-- TRANSACTION TESTS (MODIFIED TO USE VALID SEEDED RECORD IDs)
+
+START TRANSACTION;
+INSERT INTO Users (UserId, Name, Email, Phone_Number, Password, Role) 
+VALUES (21, 'Alice Smith', 'alice@gmail.com', '9000000021', '$2b$10$xyz_hash_Alice', 'CUSTOMER');
+INSERT INTO Booking (Booking_Id, Booking_Date, Booking_Status, Quantity, UserId, Event_Id) 
+VALUES (406, CURRENT_DATE, 'PENDING', 2, 21, 1);
+COMMIT;
+
+
+START TRANSACTION;
+INSERT INTO Users (UserId, Name, Email, Phone_Number, Password, Role) 
+VALUES (22, 'Bob Error', 'bob@gmail.com', '9000000022', '$2b$10$xyz_hash_Bob', 'CUSTOMER');
+ROLLBACK;
+
+
+SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+START TRANSACTION;
+UPDATE Venue SET Capacity = 600 WHERE Venue_Id = 1; 
+SELECT Capacity FROM Venue WHERE Venue_Id = 1;
+ROLLBACK;
+
+
+START TRANSACTION;
+UPDATE Event SET Available_Seats = Available_Seats - 1 WHERE Event_Id = 1;
+START TRANSACTION;
+UPDATE Event SET Available_Seats = Available_Seats - 1 WHERE Event_Id = 1;
+COMMIT;
+COMMIT;
+
+
+START TRANSACTION;
+SELECT Available_Seats FROM Event WHERE Event_Id = 1 FOR UPDATE;
+UPDATE Event SET Available_Seats = Available_Seats - 1 WHERE Event_Id = 1;
+COMMIT;
+
+
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+START TRANSACTION;
+SELECT Capacity FROM Venue WHERE Venue_Id = 1; 
+START TRANSACTION;
+UPDATE Venue SET Capacity = 1100 WHERE Venue_Id = 1;
+COMMIT;
+SELECT Capacity FROM Venue WHERE Venue_Id = 1; 
+COMMIT;
+
+
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
