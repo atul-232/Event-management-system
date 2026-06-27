@@ -52,6 +52,41 @@ async function testDB() {
 }
 testDB();
 
+async function promoteFromWaitlist(eventId, connection) {
+    try {
+        const [[event]] = await connection.execute('SELECT Available_Seats FROM Event WHERE Event_Id = ? FOR UPDATE', [eventId]);
+        if (!event) return;
+        
+        let seats = event.Available_Seats;
+        if (seats <= 0) return;
+
+        const [waitlist] = await connection.execute(
+            `SELECT * FROM Waitlist WHERE Event_Id = ? AND Status = 'WAITING' 
+             ORDER BY CASE WHEN Priority = 'URGENT' THEN 1 WHEN Priority = 'VIP' THEN 2 ELSE 3 END, Created_At ASC`,
+            [eventId]
+        );
+
+        for (const entry of waitlist) {
+            if (entry.Quantity <= seats) {
+                // Update waitlist status
+                await connection.execute('UPDATE Waitlist SET Status = "PROMOTED" WHERE Waitlist_Id = ?', [entry.Waitlist_Id]);
+                
+                // Create a booking
+                const bookingId = Math.floor(Math.random() * 1000000);
+                await connection.execute(
+                    'INSERT INTO Booking (Booking_Id, Booking_Date, Booking_Status, Quantity, UserId, Event_Id) VALUES (?, CURDATE(), "PENDING", ?, ?, ?)',
+                    [bookingId, entry.Quantity, entry.UserId, eventId]
+                );
+
+                seats -= entry.Quantity;
+                if (seats <= 0) break;
+            }
+        }
+    } catch (err) {
+        console.error("Error in promoteFromWaitlist:", err.message);
+    }
+}
+
 const app = express();
 const PORT = process.env.PORT || 10000;
 
