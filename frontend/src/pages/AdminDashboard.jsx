@@ -66,11 +66,29 @@ export default function AdminDashboard() {
     try { await api.delete(`/admin/events/${id}`); notify('Event removed from platform.', 'warning'); fetchAll(); }
     catch(err) { notify(err.response?.data?.error || 'Removal failed', 'error'); }
   };
-  const cancelBooking = async (id) => { if (!window.confirm("Cancel this booking?")) return; await api.post('/admin/cancel-booking', { bookingId: id }); notify('Booking cancelled.', 'warning'); fetchAll(); };
+  const cancelBooking = async (id) => {
+    if (!window.confirm("Cancel this booking?")) return;
+    try {
+      await api.post('/admin/cancel-booking', { bookingId: id });
+      notify('Booking cancelled.', 'warning');
+      fetchAll();
+      if (expandedUser) {
+        const res = await api.get(`/admin/user-activity/${expandedUser}`);
+        setUserActivity({ bookings: res.data.bookings || [], payments: res.data.payments || [] });
+      }
+    } catch(err) { notify(err.response?.data?.error || 'Failed to cancel booking', 'error'); }
+  };
   const cancelTicket = async (ticketId, bookingId) => {
     if (!window.confirm("Cancel this ticket?")) return;
-    try { await api.post('/tickets/cancel', { ticketId, bookingId }); notify('Ticket cancelled.', 'info'); fetchAll(); }
-    catch(err) { notify(err.response?.data?.error || 'Failed', 'error'); }
+    try {
+      await api.post('/tickets/cancel', { ticketId, bookingId });
+      notify('Ticket cancelled.', 'info');
+      fetchAll();
+      if (expandedUser) {
+        const res = await api.get(`/admin/user-activity/${expandedUser}`);
+        setUserActivity({ bookings: res.data.bookings || [], payments: res.data.payments || [] });
+      }
+    } catch(err) { notify(err.response?.data?.error || 'Failed to cancel ticket', 'error'); }
   };
   const approvePayment = async (id) => {
     try { await api.post('/admin/approve-payment', { paymentId: id }); notify('Payment approved!', 'success'); fetchAll(); }
