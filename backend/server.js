@@ -17,7 +17,7 @@ const poolConfig = {
     database: dbUrl.pathname.replace("/", ""),
     port: parseInt(dbUrl.port) || 3306,
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 3,
     queueLimit: 0,
     connectTimeout: 15000,
     ssl: {
