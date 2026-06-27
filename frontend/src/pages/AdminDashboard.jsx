@@ -142,7 +142,6 @@ export default function AdminDashboard() {
     { id: 'payments', label: '💳 Payments' },
     { id: 'transfers', label: '🔄 Transfers' },
     { id: 'waitlist', label: '⏳ Waitlist' },
-    { id: 'users', label: '👥 Users' },
     { id: 'analytics', label: '📈 Analytics' }, { id: 'predictions', label: '🧠 Predictions' },
     { id: 'blacklist', label: '🚫 Blacklist' },
   ];
