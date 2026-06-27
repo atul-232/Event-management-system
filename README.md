@@ -1,167 +1,101 @@
 # 🎫 EventTix Enterprise — Event Management & Ticket Booking System
 
-A full-stack event management platform with Admin, Owner, and Customer roles.
+![EventTix Enterprise Banner](assets/eventtix_banner.png)
+
+Welcome to **EventTix Enterprise**! This is a full-stack web application designed to make creating, managing, and booking event tickets simple and efficient. 
+
+The application supports three distinct user roles: **Customers** (who browse and book tickets), **Venue Owners** (who list venues and host events), and **Administrators** (who manage and approve listings).
 
 ---
 
-## 🛠 Prerequisites (Install These First)
+## ✨ Features by Role
 
-| Software | Version | Download Link |
-|----------|---------|---------------|
-| **Node.js** | v18 or above | https://nodejs.org |
-| **MySQL** | v8.0+ | https://dev.mysql.com/downloads/mysql/ |
+### 👤 Customers
+- **Browse Events:** View approved events, dates, locations, ticket prices, and available seats.
+- **Book & Pay:** Select ticket quantities and complete bookings using a simulated card payment.
+- **My Tickets:** View and download your digital tickets, which include seat numbers and check-in status.
+- **Transfer Tickets:** Send tickets to another user's email if you can no longer attend.
+- **Join Waitlists:** If an event sells out, join a priority queue to secure tickets when others cancel.
 
-After installing, verify by running:
-```bash
-node -v
-npm -v
-mysql --version
-```
+### 🏢 Venue Owners
+- **Business Profile:** Register as an event organizer and set up venue details.
+- **Create Events:** List new events, define seat capacities, set ticket prices, and booking deadlines.
+- **Dashboard:** Track real-time ticket bookings, customer check-in statistics, and total earnings.
+
+### 🛡️ Administrators
+- **Approve Listings:** Review and approve venue profiles and event requests before they go live on the marketplace.
+- **Platform Control:** Cancel bookings, process refunds, and suspend or blacklist accounts.
+- **Analytics:** Monitor total tickets sold, system revenue, and database statistics.
 
 ---
 
-## 🚀 Step-by-Step Setup
+## 🛠 Tech Stack
 
-### Step 1: Set Up the Database
+- **Frontend:** React.js (Vite) + Tailwind CSS (Responsive and modern UI)
+- **Backend:** Node.js + Express.js (REST API server)
+- **Database:** MySQL 8.0 (Relational database with triggers and transactions)
+- **Authentication:** JWT (JSON Web Tokens) & Bcrypt (Secure password hashing)
 
-1. **Start MySQL** (if not already running):
-   - **Windows**: Open Services → Start *MySQL80*
-   - **Mac**: `brew services start mysql` or start from System Preferences
-   - **Linux**: `sudo systemctl start mysql`
+---
 
-2. **Import the database schema**:
+## ⚙️ How to Setup and Run the Project
+
+### Prerequisites
+Make sure you have installed:
+1. **Node.js** (v18 or newer)
+2. **MySQL Database**
+
+---
+
+### Step 1: Initialize the Database
+1. Open your terminal and run the following command to import the database schema and sample seed data:
    ```bash
-   mysql -u root -p < Event_Mangement.sql
+   mysql -u root -p < setup_complete.sql
    ```
-   Enter your MySQL root password when prompted.  
-   This creates the `EventDB` database with all tables, triggers, and indexes.
-
-3. **Also import the transactions file** (optional, for stored procedures):
+2. *(Optional)* To import the transactions and procedures setup:
    ```bash
    mysql -u root -p EventDB < task6_transactions.sql
    ```
 
 ---
 
-### Step 2: Configure Database Credentials
-
-Edit the file `backend/db.js` and update the password to match **your** MySQL root password:
-
-```js
-const pool = mysql.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: 'YOUR_MYSQL_PASSWORD',  // ← CHANGE THIS
-    database: 'EventDB',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-});
-```
-
----
-
-### Step 3: Start the Backend Server
-
-Open a terminal and run:
-```bash
-cd backend
-npm install
-node server.js
-```
-
-You should see:
-```
-Backend securely running on http://localhost:8080
-```
-
-> ⚠️ **Keep this terminal open.** The backend must stay running.
-
----
-
-### Step 4: Start the Frontend
-
-Open a **second/new terminal** and run:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-You should see:
-```
-  VITE vx.x.x  ready in xxx ms
-
-  ➜  Local:   http://localhost:5174/
-```
-
-**Open http://localhost:5174 in your browser** 🎉
-
----
-
-## 📋 Quick Reference
-
-| Component    | Command             | URL                        |
-|-------------|---------------------|----------------------------|
-| **Database** | `mysql -u root -p < Event_Mangement.sql` | — |
-| **Backend**  | `node server.js`    | http://localhost:8080       |
-| **Frontend** | `npm run dev`       | http://localhost:5174       |
-
----
-
-## 👤 First Time Usage
-
-1. The app starts with **no users logged in**
-2. **Register** a new account (Customer or Owner role)
-3. To create an **Admin** account, insert directly into the database:
-   ```sql
-   -- Run this in MySQL to create an admin (password: Admin@123)
-   INSERT INTO Users (UserId, Name, Email, Phone_Number, Password, Role)
-   VALUES (1, 'Admin', 'admin@eventtix.com', '9999999999',
-   '$2b$10$YourBcryptHashHere', 'ADMIN');
+### Step 2: Start the Backend Server
+1. Navigate to the `backend` folder:
+   ```bash
+   cd backend
    ```
-   Or use the pre-seeded admin if the SQL file includes one.
+2. Create a file named `.env` and configure your database login details:
+   ```env
+   DATABASE_URL=mysql://root:your_mysql_password@localhost:3306/EventDB
+   PORT=8080
+   JWT_SECRET=my_super_secret_jwt_key
+   ```
+3. Install dependencies and start the backend:
+   ```bash
+   npm install
+   node server.js
+   ```
+   *Expected Output: `✅ Database connected successfully!`, `Backend securely running on http://localhost:8080`*
 
 ---
 
-## 🔧 Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| `ER_ACCESS_DENIED_ERROR` | Wrong MySQL password in `backend/db.js` |
-| `ECONNREFUSED` on backend | MySQL is not running. Start the MySQL service. |
-| Frontend shows network error | Backend is not running. Start it with `node server.js` |
-| Port 8080 already in use | Kill the process: `lsof -i :8080` then `kill -9 <PID>` |
-| `npm install` fails | Try deleting `node_modules` and `package-lock.json`, then retry |
-
----
-
-## 📁 Project Structure
-
-```
-group_109/
-├── Event_Mangement.sql        # Database schema + triggers
-├── task6_transactions.sql     # Transaction procedures
-├── README.md                  # This file
-├── backend/
-│   ├── db.js                  # MySQL connection config
-│   ├── server.js              # Express API server (all routes)
-│   └── package.json           # Backend dependencies
-└── frontend/
-    ├── src/
-    │   ├── App.jsx            # Main app with routing
-    │   ├── pages/             # Login, Register, Dashboards, etc.
-    │   ├── components/        # Reusable UI components
-    │   └── services/api.js    # Axios API client
-    ├── index.html
-    └── package.json           # Frontend dependencies
-```
+### Step 3: Start the Frontend App
+1. Open a new terminal window and navigate to the `frontend` folder:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies and start the React app:
+   ```bash
+   npm install
+   npm run dev
+   ```
+3. Open your browser and go to: `http://localhost:5174/`
 
 ---
 
-## ⚡ Tech Stack
+## 📂 Folder Structure
 
-- **Frontend**: React 19 + Vite + TailwindCSS
-- **Backend**: Node.js + Express 5
-- **Database**: MySQL 8 with Triggers & Stored Procedures
-- **Auth**: JWT + bcrypt
+- `/backend` — Express API server and database connection logic.
+- `/frontend` — React user interface, page routing, and dashboard components.
+- `setup_complete.sql` — SQL script for creating tables, triggers, and seeding initial data.
+- `/assets` — Graphical resources and media assets for the project.
