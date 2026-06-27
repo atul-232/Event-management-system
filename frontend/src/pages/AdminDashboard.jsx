@@ -30,7 +30,7 @@ export default function AdminDashboard() {
     return () => window.removeEventListener('hashchange', handler);
   }, []);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, [page]);
   const notify = useNotification();
 
   const fetchAll = async () => {
